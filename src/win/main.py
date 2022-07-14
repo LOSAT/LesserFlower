@@ -1,4 +1,4 @@
-from operator import is_
+
 from OpenGL.GLUT import *
 import numba as nb
 import numpy as np
