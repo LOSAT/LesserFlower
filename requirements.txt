@@ -1,0 +1,4 @@
+pyopengl
+numba
+numpy
+glfw
