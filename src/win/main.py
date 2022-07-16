@@ -1,9 +1,10 @@
-
-from OpenGL.GLUT import *
 import numba as nb
 import numpy as np
 from OpenGL.GL import *
 from numpy.random import randint
+import math
+from glfw import *
+import sys
 import os
 try:
     del os.environ['DISPLAY']
@@ -46,16 +47,17 @@ def has(vec, val):
     if np.where(vec == val)[0].shape[0] > 0:
         res = True
     return res
-
+set
 
 @nb.jit(nopython=True, fastmath=True)
 def idx(x, y):
     return (y * windowsize[0] + x) * 3
 
 def fill_water(x, y):
-    __buffer[idx(x, y)] = 0
-    __buffer[idx(x, y) + 1] = 0
-    __buffer[idx(x, y) + 2] = 255
+    if(idx(x, y) < len(__buffer)):
+        __buffer[idx(x, y)] = 0
+        __buffer[idx(x, y) + 1] = 0
+        __buffer[idx(x, y) + 2] = 255
 
 
 @nb.jit(nopython=True, fastmath=True)
@@ -115,50 +117,57 @@ def update_water(time, buffer, sandy): # sandy는 테스트
                     buffer[left + 2] = 255
                     buffer[current + 2] = 0   
 
-water_fill_range = 5
+water_fill_range = 100
 def on_drag(x, y):
     fill_water(x, y)
 
-    for i in range(10):
+    for i in range(100):
         fill_water(x + randint(-water_fill_range, water_fill_range), y + randint(-water_fill_range, water_fill_range))
 
-
-def on_click(button, state, x, y):
-    print(f"{x}, {y} = {idx(x, y)}")
-    if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN:
-        fill_water(x, y)
-def main():
-    time = 0
-    glutInit(sys.argv)
-    glutInitDisplayMode(GLUT_RGBA)
-    glutInitWindowSize(windowsize[0], windowsize[1])
-    window = glutCreateWindow("Lesser Flower")
-    glutDisplayFunc(lambda: None)
-    #glutMouseFunc(on_click)
-    glutMotionFunc(on_drag)
-    #glutPassiveMotionFunc()
-
-    glViewport( 0, 0, windowsize[0], windowsize[1])
-    glMatrixMode(GL_PROJECTION)
-    glLoadIdentity()
-    glOrtho( 0, windowsize[0], 0, windowsize[1], 0.1, 1 )
-    glPixelZoom( 1, -1 )
-    glRasterPos3f(0, windowsize[1] - 1, -0.3)
-    
-    while 1:
-        glutMainLoopEvent()
-        glClearColor(0, 0, 0, 255)
-        glClear(GL_COLOR_BUFFER_BIT)
+click = False
+def on_click(window, button ,action, asdf):
+    global click
+    if(button == MOUSE_BUTTON_LEFT):
+        if(action == PRESS):
+            click = True
+        elif(action == RELEASE):
+            click = False
+def on_move(window, x, y):
+    if(click):
+        fill_water(math.floor(x), math.floor(y))
 
         for i in range(10):
-            fill_water(400 + randint(-5, 5), 200 + randint(-5, 5))
+            fill_water(math.floor(x) + randint(-water_fill_range, water_fill_range), math.floor(y) + randint(-water_fill_range, water_fill_range))
+def main():
+    time = 0
+    init()
+    window = create_window(windowsize[0], windowsize[1], "Lesser Flower", None, None)
+    make_context_current(window)
+    #glutMouseFunc(on_click)
+    set_mouse_button_callback(window, on_click)
+    set_cursor_pos_callback(window, on_move)
+    #glutPassiveMotionFunc()
+
+    glViewport(0, 0, windowsize[0], windowsize[1])
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    glOrtho( 0, windowsize[0], 0, windowsize[1], 0, 10)
+    glPixelZoom( 1, -1 )
+    glRasterPos3f(0, windowsize[1], -0.3)
+    while not window_should_close(window):
+        glClearColor(0, 0, 0, 255)
+        glClear(GL_COLOR_BUFFER_BIT)
         #newBuffer = update_buffer(__buffer)
         update_water(time, __buffer, False)
+        
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
+        glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0)
+        glPixelStorei(GL_UNPACK_SKIP_ROWS, 0)
         glDrawPixels(*windowsize, GL_RGB, GL_UNSIGNED_BYTE, __buffer) # 임시로 __buffer를 전역으로 직접 수정하게끔 함.
         # 단, JIT 처리된 함수는 인자로 받아 수정
-        glutSwapBuffers()
+        swap_buffers(window)
+        poll_events()
         time = time + 1 # 프레임 처리를 위함
-
-
+    terminate()
 
 main()

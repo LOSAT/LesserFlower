@@ -133,13 +133,13 @@ def on_click(window, button ,action, asdf):
         elif(action == RELEASE):
             click = False
 def on_move(window, x, y):
-    x = 2 * x
-    y = 2 * y
+    new_x = 2 * x
+    new_y = 2 * y
     if(click):
-        fill_water(math.floor(x), math.floor(y))
+        fill_water(math.floor(new_x), math.floor(new_y))
 
         for i in range(10):
-            fill_water(math.floor(x) + randint(-water_fill_range, water_fill_range), math.floor(y) + randint(-water_fill_range, water_fill_range))
+            fill_water(math.floor(new_x) + randint(-water_fill_range, water_fill_range), math.floor(new_y) + randint(-water_fill_range, water_fill_range))
 def main():
     time = 0
     init()
