@@ -1,4 +1,6 @@
 # Lesser Flower
+> Version 1.1
+
 <img src="https://user-images.githubusercontent.com/34784356/178954445-aae1e5b5-6df5-4f21-94ef-207abe48ff2d.png" width="600">  
 
 이 프로그램은 Flower 프로그램을 본격적으로 구성하기 전에
@@ -22,11 +24,14 @@ Lesser Flower는 테스트를 진행하기 위한 환경이기 때문에 높은 
 - glfw
 
 ### 실행
-**Windows**: `python src/win/main.py`  
-**Mac**: `python3 src/mac/main.py`
+
+```
+python src/main.py
+```
 ## 주의사항
 
 ~~PyOpenGL에는 GLUT이 누락되어 있습니다.~~  
 ~~Windows의 경우 PyOpenGL을 pip이 아닌 별도의 방법으로 설치해야 합니다.~~  
+~~Windows에서도 GLFW를 사용하는 것으로 통일하였습니다.~~
 
-Windows에서도 GLFW를 사용하는 것으로 통일하였습니다.
+Windows 및 Mac의 코드를 완전히 통일하였습니다. (1.1버전)

@@ -4,13 +4,15 @@ from OpenGL.GL import *
 from numpy.random import randint
 import math
 from glfw import *
-import sys
+import platform
 import os
 try:
     del os.environ['DISPLAY']
 except:
     pass
-windowsize = (800 * 2, 600 * 2)
+
+env = platform.system()
+windowsize = (800 * 2, 600 * 2) if env == 'Darwin' else (800, 600)
 
 __buffer = np.zeros(windowsize[0] * windowsize[1] * 3)
 
@@ -133,27 +135,36 @@ def on_click(window, button ,action, asdf):
         elif(action == RELEASE):
             click = False
 def on_move(window, x, y):
-    new_x = 2 * x
-    new_y = 2 * y
+    new_x = (2 if env == 'Darwin' else 1) * x
+    new_y = (2 if env == 'Darwin' else 1) * y
     if(click):
         fill_water(math.floor(new_x), math.floor(new_y))
 
         for i in range(10):
             fill_water(math.floor(new_x) + randint(-water_fill_range, water_fill_range), math.floor(new_y) + randint(-water_fill_range, water_fill_range))
-def main():
+def main(title, version):
     time = 0
     init()
-    window = create_window(windowsize[0] // 2, windowsize[1] // 2, "Lesser Flower", None, None)
+    window = create_window(
+        windowsize[0] // 2 if env == 'Darwin' else windowsize[0], 
+        windowsize[1] // 2 if env == 'Darwin' else windowsize[1], 
+        f"{title} {version}", 
+        None, 
+        None
+    )
     make_context_current(window)
     #glutMouseFunc(on_click)
     set_mouse_button_callback(window, on_click)
     set_cursor_pos_callback(window, on_move)
     #glutPassiveMotionFunc()
 
-    fb_width, fb_height = get_framebuffer_size(window)
-    _x = -(windowsize[0] - fb_width) // 2
-    _y = -(windowsize[1] - fb_height) // 2
-    glViewport( _x, _y, windowsize[0], windowsize[1])
+    if env == 'Darwin':
+        fb_width, fb_height = get_framebuffer_size(window)
+        _x = -(windowsize[0] - fb_width) // 2
+        _y = -(windowsize[1] - fb_height) // 2
+        glViewport(_x, _y, windowsize[0], windowsize[1])
+    else:
+        glViewport(0, 0, windowsize[0], windowsize[1])
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
     glOrtho( 0, windowsize[0], 0, windowsize[1], 0, 10)
@@ -175,4 +186,4 @@ def main():
         time = time + 1 # 프레임 처리를 위함
     terminate()
 
-main()
+main("Lesser Flower", 1.1)
