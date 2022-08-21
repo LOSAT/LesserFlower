@@ -1,189 +1,132 @@
-import numba as nb
-import numpy as np
-from OpenGL.GL import *
-from numpy.random import randint
+from tkinter.filedialog import Open
+import numba
+import numpy
 import math
-from glfw import *
+import OpenGL.GL as OpenGL
+import glfw as GLFW
 import platform
 import os
-try:
-    del os.environ['DISPLAY']
-except:
-    pass
+from lib.jitted.pointless import pointless
 
-env = platform.system()
-windowsize = (800 * 2, 600 * 2) if env == 'Darwin' else (800, 600)
+from lib.math.Point import Point
+from lib.jitted.update import update_entity
+from lib.jitted.pre_render import pre_render
+from lib.matter.Water import Water
 
-__buffer = np.zeros(windowsize[0] * windowsize[1] * 3)
+class App:
+    env = platform.system()
 
+    @staticmethod
+    def os_pick(value1, value2):
+        return value2 if App.env == 'Darwin' else value1
 
-@nb.jit()
-def iterBuff(buffer, func):
-    for i, v in enumerate(buffer):
-        buffer[i] = func(i, v)
-    return buffer
+    def __init__(self, title, width, height) -> None:
 
+        del os.environ['DISPLAY']
 
-def create_buffer_editor(callback):
-    @nb.jit(nopython=True)
-    def func(buffer):
-        for i, v in enumerate(buffer):
-            buffer[i] = callback(i, v)
-        return buffer
-    return func
- 
-@nb.jit(nopython=True, fastmath=True)
-def control(i, v):
-    pass
-iterBuffer = create_buffer_editor(control)
+        self.title = title
+        self.width = width
+        self.height = height
+        self.time = 0
+        self.buffer = numpy.zeros(self.width * self.height * 3)
+        self.clear_color = (0, 0, 0, 255) # black
 
-@nb.jit(nopython=True, fastmath=True)
-def update_process(i, v):
-    pass
-update_buffer = create_buffer_editor(update_process)
+        self.entity_instances = [] # real
+        self.entities = [
+            [
+                0,
+                0,
+                0,
+                (0, 0, 0)
+            ]
+        ] # data
 
+        GLFW.init()
 
-@nb.jit(nopython=True, fastmath=True)
-def has(vec, val):
-    res = False
-    if np.where(vec == val)[0].shape[0] > 0:
-        res = True
-    return res
-set
+        self.window = GLFW.create_window(
+            App.os_pick(width, width // 2),
+            App.os_pick(height, height // 2),
+            self.title,
+            None,
+            None
+        )
 
-@nb.jit(nopython=True, fastmath=True)
-def idx(x, y):
-    return (y * windowsize[0] + x) * 3
+        GLFW.make_context_current(self.window)
+        GLFW.set_mouse_button_callback(
+            self.window, 
+            lambda _, button, action, __: self.on_click(button, action)
+        )
+        GLFW.set_cursor_pos_callback(
+            self.window,
+            lambda _, x, y: self.on_move(Point(x, y))
+        )
 
-def fill_water(x, y):
-    if(idx(x, y) < len(__buffer)):
-        __buffer[idx(x, y)] = 0
-        __buffer[idx(x, y) + 1] = 0
-        __buffer[idx(x, y) + 2] = 255
+        if self.env == 'Darwin':
+            buf_width, buf_height = GLFW.get_framebuffer_size(self.window)
+            OpenGL.glViewport(
+                -(self.width - buf_width) // 2,
+                -(self.height - buf_height) // 2,
+                self.width,
+                self.height
+            )
+        else:
+            OpenGL.glViewport(0, 0, self.width, self.height)
 
-
-@nb.jit(nopython=True, fastmath=True)
-def validate_frag(buffer, base_index, rgb):
-    return (
-        buffer[base_index] == rgb[0] 
-        and buffer[base_index + 1] == rgb[1] 
-        and buffer[base_index + 2] == rgb[2]
-    )
-
-@nb.jit(nopython=True, fastmath=True)
-def is_fragment_empty(buffer, index):
-    return validate_frag(buffer, index, (0, 0, 0))
-
-
-@nb.jit(nopython=True, fastmath=True)
-def exists(buffer, index):
-    return index <= len(buffer)
-
-@nb.jit(nopython=True, fastmath=True)
-def update_water(time, buffer, sandy): # sandy는 테스트
-    mem = np.zeros(windowsize[0] * windowsize[1] * 3) # 한 번만 업데이트하게 하기 위함(255가 아니여도 된다.). 비효율적이므로 수정 ㄱ
-    for y in range(windowsize[1]):
-        for x in range(windowsize[0]):
-            
-            current = idx(x, y)
-            down = idx(x, y + 1)
-            left_down = idx(x - 1, y + 1)
-            right_down = idx(x + 1, y + 1)
-            left = idx(x - 1, y)
-            right = idx(x + 1, y)
-
-            if(exists(buffer, down + 2) and mem[current] == 0): # 주기 정하려면 time % ms == 0 추가, 한 번만 업데이트하게 하기 위함. 비효율적이므로 수정 ㄱ
-                is_blue = validate_frag(buffer, current, (0, 0, 255))
-                if(is_blue and is_fragment_empty(buffer, down)):
-                    mem[down] = 255
-                    buffer[down + 2] = 255 # 아래 채우기
-                    buffer[current + 2] = 0 # 현재 위치 지우기
-
-                elif(is_blue and is_fragment_empty(buffer, left_down)):
-                    mem[left_down] = 255
-                    buffer[left_down + 2] = 255
-                    buffer[current + 2] = 0
-
-                elif(is_blue and is_fragment_empty(buffer, right_down)): # 고체 가루와 비슷..
-                    mem[right_down] = 255
-                    buffer[right_down + 2] = 255
-                    buffer[current + 2] = 0
         
-                elif(is_blue and is_fragment_empty(buffer, right) and not sandy): # 부터는 액체의 특성을 가짐
-                    mem[right] = 255
-                    buffer[right + 2] = 255
-                    buffer[current + 2] = 0    
+        OpenGL.glMatrixMode(OpenGL.GL_PROJECTION)
+        OpenGL.glLoadIdentity()
+        OpenGL.glOrtho(0, self.width, 0, self.height, 0, 10)
+        OpenGL.glPixelZoom(1, -1)
+        OpenGL.glRasterPos3f(0, self.height, -0.3)
 
-                elif(is_blue and is_fragment_empty(buffer, left) and not sandy):
-                    mem[left] = 255
-                    buffer[left + 2] = 255
-                    buffer[current + 2] = 0   
+        while not GLFW.window_should_close(self.window):
+            self.tick()
+            self.time += 1
+        GLFW.terminate()
 
-water_fill_range = 100
-def on_drag(x, y):
-    fill_water(x, y)
+    def tick(self):
+        self.update()
+        self.render()
+    # 모든 입자에 대한 업데이트
+    def update(self):
+        self.entities = update_entity(self.entities, self.time)
+    # 이 단계에서 buffer에 대한 전체적인 접근과 수정이 이루어진다.
+    def pre_render(self):
+        self.buffer = pre_render(self.height, self.entities)
+    def render(self):
+        OpenGL.glClearColor(*self.clear_color)
+        OpenGL.glClear(OpenGL.GL_COLOR_BUFFER_BIT)
 
-    for i in range(100):
-        fill_water(x + randint(-water_fill_range, water_fill_range), y + randint(-water_fill_range, water_fill_range))
+        OpenGL.glDrawPixels(
+            self.width,
+            self.height,
+            OpenGL.GL_RGB,
+            OpenGL.GL_UNSIGNED_BYTE,
+            self.buffer
+        )
 
-click = False
-def on_click(window, button ,action, asdf):
-    global click
-    if(button == MOUSE_BUTTON_LEFT):
-        if(action == PRESS):
-            click = True
-        elif(action == RELEASE):
-            click = False
-def on_move(window, x, y):
-    new_x = (2 if env == 'Darwin' else 1) * x
-    new_y = (2 if env == 'Darwin' else 1) * y
-    if(click):
-        fill_water(math.floor(new_x), math.floor(new_y))
+        GLFW.swap_buffers(self.window)
+        GLFW.poll_events()
 
-        for i in range(10):
-            fill_water(math.floor(new_x) + randint(-water_fill_range, water_fill_range), math.floor(new_y) + randint(-water_fill_range, water_fill_range))
-def main(title, version):
-    time = 0
-    init()
-    window = create_window(
-        windowsize[0] // 2 if env == 'Darwin' else windowsize[0], 
-        windowsize[1] // 2 if env == 'Darwin' else windowsize[1], 
-        f"{title} {version}", 
-        None, 
-        None
-    )
-    make_context_current(window)
-    #glutMouseFunc(on_click)
-    set_mouse_button_callback(window, on_click)
-    set_cursor_pos_callback(window, on_move)
-    #glutPassiveMotionFunc()
+    def on_click(self, button, action):
+        pass
+    def on_move(self, pos):
+        water = Water()
+        self.add(water)
+        water.x = pos.x
+        water.y = pos.y
 
-    if env == 'Darwin':
-        fb_width, fb_height = get_framebuffer_size(window)
-        _x = -(windowsize[0] - fb_width) // 2
-        _y = -(windowsize[1] - fb_height) // 2
-        glViewport(_x, _y, windowsize[0], windowsize[1])
-    else:
-        glViewport(0, 0, windowsize[0], windowsize[1])
-    glMatrixMode(GL_PROJECTION)
-    glLoadIdentity()
-    glOrtho( 0, windowsize[0], 0, windowsize[1], 0, 10)
-    glPixelZoom( 1, -1 )
-    glRasterPos3f(0, windowsize[1], -0.3)
-    while not window_should_close(window):
-        glClearColor(0, 0, 0, 255)
-        glClear(GL_COLOR_BUFFER_BIT)
-        #newBuffer = update_buffer(__buffer)
-        update_water(time, __buffer, False)
-        
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
-        glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0)
-        glPixelStorei(GL_UNPACK_SKIP_ROWS, 0)
-        glDrawPixels(*windowsize, GL_RGB, GL_UNSIGNED_BYTE, __buffer) # 임시로 __buffer를 전역으로 직접 수정하게끔 함.
-        # 단, JIT 처리된 함수는 인자로 받아 수정
-        swap_buffers(window)
-        poll_events()
-        time = time + 1 # 프레임 처리를 위함
-    terminate()
+    def add(self, entity):
+        entity.engine = self
+        # 유기적인 관계를 보존하기 위함
+        self.entity_instances.append(entity)
 
-main("Lesser Flower", 1.1)
+        # simplify
+        self.entities.append([ 
+            entity.type,
+            entity.x,
+            entity.y,
+            entity.color
+        ])
+
+app = App("Lesser Flower", 800, 600)
