@@ -6,7 +6,6 @@ import OpenGL.GL as OpenGL
 import glfw as GLFW
 import platform
 import os
-from lib.jitted.pointless import pointless
 
 from lib.math.Point import Point
 from lib.jitted.update import update_entity
