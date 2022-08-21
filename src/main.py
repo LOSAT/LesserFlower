@@ -1,7 +1,6 @@
-from tkinter.filedialog import Open
+
 import numba
 import numpy
-import math
 import OpenGL.GL as OpenGL
 import glfw as GLFW
 import platform
