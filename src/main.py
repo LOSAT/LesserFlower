@@ -26,18 +26,11 @@ class App:
         self.width = width
         self.height = height
         self.time = 0
-        self.buffer = numpy.zeros(self.width * self.height * 3)
+        self.buffer = numpy.zeros(self.width * self.height * 3, int)
         self.clear_color = (0, 0, 0, 255) # black
 
         self.entity_instances = [] # real
-        self.entities = [
-            [
-                0,
-                0,
-                0,
-                (0, 0, 0)
-            ]
-        ] # data
+        self.entities = numpy.array([], int)
 
         GLFW.init()
 
@@ -84,13 +77,14 @@ class App:
 
     def tick(self):
         self.update()
+        self.pre_render()
         self.render()
     # 모든 입자에 대한 업데이트
     def update(self):
         self.entities = update_entity(self.entities, self.time)
     # 이 단계에서 buffer에 대한 전체적인 접근과 수정이 이루어진다.
     def pre_render(self):
-        self.buffer = pre_render(self.height, self.entities)
+        self.buffer = pre_render(self.width, self.entities, self.buffer)
     def render(self):
         OpenGL.glClearColor(*self.clear_color)
         OpenGL.glClear(OpenGL.GL_COLOR_BUFFER_BIT)
@@ -110,21 +104,28 @@ class App:
         pass
     def on_move(self, pos):
         water = Water()
-        self.add(water)
+        water.engine = self
         water.x = pos.x
         water.y = pos.y
 
+        self.add(water)
+
     def add(self, entity):
-        entity.engine = self
         # 유기적인 관계를 보존하기 위함
         self.entity_instances.append(entity)
 
         # simplify
-        self.entities.append([ 
-            entity.type,
-            entity.x,
-            entity.y,
-            entity.color
-        ])
+        #self.entities.append(entity.type)
+        #self.entities.append(entity.x)
+        #self.entities.append(entity.y)
+        #self.entities.append(entity.color)
 
+        self.entities = numpy.append(
+            self.entities, 
+            [
+                entity.type, entity.x, entity.y, 
+
+                entity.color[0], entity.color[1], entity.color[2]
+            ]
+        )
 app = App("Lesser Flower", 800, 600)

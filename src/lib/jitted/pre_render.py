@@ -1,12 +1,13 @@
 import numba
+import numpy
 from lib.jitted.indexize import indexize
 
-@numba.jit(cache=True, nopython=True, fastmath=True)
-def pre_render(height, entities):
-    R = []
-    for entity in entities:
-        index = indexize(height, entity[1], entity[2])
-        R[index] = entity[3][0]
-        R[index + 1] = entity[3][1]
-        R[index + 2] = entity[3][2]
-    return R
+# TODO: 이거 버그나는 이유가 뭘까
+@numba.jit(nopython=True)
+def pre_render(width, entities, buffer):
+    for i in range(entities.size):
+        index = indexize(width, entities[i + 1], entities[i + 2])
+        buffer[int(index)] = entities[i + 3]
+        buffer[int(index + 1)] = entities[i + 4]
+        buffer[int(index + 2)] = entities[i + 5]
+    return buffer

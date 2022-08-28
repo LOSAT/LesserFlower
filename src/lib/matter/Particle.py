@@ -18,7 +18,8 @@ class Particle:
     @x.setter
     def x(self, value):
         self._x = value
-        self.engine.entities[self.id][0] = self._x
+        if(self.engine.entities.size >= self.id + 5):
+            self.engine.entities[self.id + 1] = self._x
     
     @property
     def y(self):
@@ -27,7 +28,8 @@ class Particle:
     @y.setter
     def y(self, value):
         self._y = value
-        self.engine.entities[self.id][1] = self._y
+        if(self.engine.entities.size >= self.id + 5):
+            self.engine.entities[self.id + 2] = self._y
 
     @property
     def color(self):
@@ -36,4 +38,5 @@ class Particle:
     @color.setter
     def color(self, value):
         self._color = value
-        self.engine.entities[self.id][2] = self._color
+        if(self.engine.entities.size >= self.id + 5):
+            self.engine.entities[self.id + 3] = self._color

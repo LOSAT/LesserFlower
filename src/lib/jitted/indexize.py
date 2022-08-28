@@ -1,5 +1,5 @@
 import numba
 
 @numba.jit(cache=True, nopython=True, fastmath=True)
-def indexize(height, x, y):
-    return (y * height + x) * 3
+def indexize(width, x, y):
+    return (y * width + x) * 3

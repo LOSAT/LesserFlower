@@ -24,9 +24,13 @@
 - glfw
 
 ### 실행
-
+> 2.0a
 ```
 python src/main.py
+```
+> 이전 버전 (1.1)
+```
+python src/old/old.py
 ```
 ## 주의사항
 
