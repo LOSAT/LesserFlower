@@ -8,7 +8,7 @@ class Water(Particle):
         super().__init__(Point(0, 0), (0, 0, 255))
         self.type = 0 # readonly
 
-@numba.jit(cache=True, nopython=True, fastmath=True)
-def update_water(entity, time):
+@numba.jit(nopython=True, fastmath=True)
+def update_water(entity, time): #일시적으로 deprecated
     entity[2] = entity[2] + 1
     return entity

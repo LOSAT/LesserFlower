@@ -2,7 +2,7 @@
 
 import numba
 
-@numba.jit(cache=True, nopython=True, fastmath=True)
+@numba.jit(nopython=True, fastmath=True)
 def use_indexizer(height):
     @numba.jit(cache=True, nopython=True, fastmath=True)
     def indexize(x, y):

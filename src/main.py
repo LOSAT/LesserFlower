@@ -5,6 +5,7 @@ import OpenGL.GL as OpenGL
 import glfw as GLFW
 import platform
 import os
+import math
 
 from lib.math.Point import Point
 from lib.jitted.update import update_entity
@@ -26,11 +27,13 @@ class App:
         self.width = width
         self.height = height
         self.time = 0
-        self.buffer = numpy.zeros(self.width * self.height * 3, int)
+        self.buffer = numpy.zeros(self.width * self.height * 3)
         self.clear_color = (0, 0, 0, 255) # black
 
         self.entity_instances = [] # real
         self.entities = numpy.array([], int)
+
+        print(self.entities)
 
         GLFW.init()
 
@@ -57,18 +60,18 @@ class App:
             OpenGL.glViewport(
                 -(self.width - buf_width) // 2,
                 -(self.height - buf_height) // 2,
-                self.width,
-                self.height
+                self.width * 2,
+                self.height * 2
             )
         else:
             OpenGL.glViewport(0, 0, self.width, self.height)
 
         
         OpenGL.glMatrixMode(OpenGL.GL_PROJECTION)
-        OpenGL.glLoadIdentity()
+        OpenGL.glLoadIdentity() 
         OpenGL.glOrtho(0, self.width, 0, self.height, 0, 10)
         OpenGL.glPixelZoom(1, -1)
-        OpenGL.glRasterPos3f(0, self.height, -0.3)
+        OpenGL.glRasterPos2f(0, self.height)
 
         while not GLFW.window_should_close(self.window):
             self.tick()
@@ -81,13 +84,15 @@ class App:
         self.render()
     # 모든 입자에 대한 업데이트
     def update(self):
-        self.entities = update_entity(self.entities, self.time)
+        self.entities = update_entity(self.entities, self.buffer, self.time)
+        #print(self.entities)
     # 이 단계에서 buffer에 대한 전체적인 접근과 수정이 이루어진다.
     def pre_render(self):
-        self.buffer = pre_render(self.width, self.entities, self.buffer)
+        self.buffer = pre_render(self.width, self.height, self.entities, self.buffer)
     def render(self):
         OpenGL.glClearColor(*self.clear_color)
         OpenGL.glClear(OpenGL.GL_COLOR_BUFFER_BIT)
+        OpenGL.glPixelStorei(OpenGL.GL_UNPACK_ALIGNMENT, 1)
 
         OpenGL.glDrawPixels(
             self.width,
@@ -103,10 +108,16 @@ class App:
     def on_click(self, button, action):
         pass
     def on_move(self, pos):
+
+        if pos.y < 0 or pos.y > self.buffer.size:
+            return
+
         water = Water()
         water.engine = self
-        water.x = pos.x
-        water.y = pos.y
+        water.x = math.floor(pos.x)
+        water.y = math.floor(pos.y)
+
+        #print("onMove", water.y)
 
         self.add(water)
 
@@ -119,13 +130,16 @@ class App:
         #self.entities.append(entity.x)
         #self.entities.append(entity.y)
         #self.entities.append(entity.color)
-
         self.entities = numpy.append(
-            self.entities, 
+            self.entities,
             [
-                entity.type, entity.x, entity.y, 
-
-                entity.color[0], entity.color[1], entity.color[2]
+                entity.type,
+                entity.x,
+                entity.y,
+                entity.color[0],
+                entity.color[1],
+                entity.color[2]
             ]
         )
+        #print(self.entities)
 app = App("Lesser Flower", 800, 600)

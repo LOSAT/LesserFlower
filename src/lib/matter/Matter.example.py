@@ -9,6 +9,6 @@ class CustomMatter(Particle):
         self.type = 'matter-own-type' # readonly
 
 
-@numba.jit(cache=True, nopython=True, fastmath=True)
+@numba.jit(nopython=True, fastmath=True)
 def update_custom_matter(entity, time):
     ...
